@@ -1,0 +1,92 @@
+name: Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Ejecutar golangci-lint
+        uses: golangci/golangci-lint-action@v6
+      - name: Ejecutar go vet
+        run: go vet ./...
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Mostrar version de go
+        run: go version
+      - name: Ejecutar test
+        run: go test ./...
+      - name: Generar y mostrar log de test
+        run: |
+          go test -v ./... > test.log
+          cat test.log
+      - name: Subir artifact de tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests
+          path: test.log
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Construir binario
+        run: |
+          mkdir -p dist
+          go build -o dist/notas .
+      - name: Listar binario
+        run: ls -l dist/notas
+      - name: Subir artifact app
+        uses: actions/upload-artifact@v4
+        with:
+          name: app
+          path: dist
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar artifact app
+        uses: actions/download-artifact@v4
+        with:
+          name: app
+          path: dist
+      - name: Descargar artifact tests
+        uses: actions/download-artifact@v4
+        with:
+          name: tests
+          path: informes
+      - name: Listar directorios dist e informes
+        run: ls -l dist informes
+      - name: Ejecutar app y comprobar salida
+        run: |
+          chmod +x dist/notas
+          SALIDA=$(./dist/notas)
+          echo "$SALIDA" | grep "nota lista"
+      - name: Mostrar informe test
+        run: cat informes/test.log
