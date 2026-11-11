@@ -4,6 +4,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 jobs:
@@ -69,6 +82,7 @@ jobs:
           path: dist
 
   package:
+    needs: [lint, test, build]
     runs-on: ubuntu-latest
     steps:
       - name: Descargar artifact app
